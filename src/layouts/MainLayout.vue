@@ -1,12 +1,17 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-page-container>
-      <!-- Aquí se renderizarán tus páginas (como IndexPage.vue) -->
+  <q-layout view="hHh Lpr lff" class="bg-main tx-body">
+    <AppSidebar v-if="showSidebar" />
+    <q-page-container class="bg-main">
       <router-view />
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup>
-// Totalmente limpio y sin lógica innecesaria
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import AppSidebar from 'components/AppSidebar.vue'
+
+const route = useRoute()
+const showSidebar = computed(() => route.path.startsWith('/dashboard'))
 </script>

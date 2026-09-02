@@ -31,3 +31,10 @@ yarn-error.log*
 
 # local .env files
 .env.local*
+
+# Local-only tooling / agent files (not part of the app)
+/AGENTS.md
+/vault/
+/specs/
+/.opencode/
+/.specify/
