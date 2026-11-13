@@ -48,43 +48,50 @@ let especiales = {
 }
 window.onload = function () {
 
-    let js_boton = document.querySelector(".js_boton");
-    js_boton.onclick = async function () {
+    const patientCode = new URLSearchParams(window.location.search).get("paciente") || "sin-asignar";
+    const storageKey = `smileos-odontograma:${patientCode}`;
+    const chartRoot = document.querySelector(".js_contenedorImprimir");
+    const saveStatus = document.querySelector(".js_saveStatus");
+    const patientName = document.querySelector(".js_patientName");
+    patientName.textContent = `Odontograma · ${patientCode}`;
 
-
-        let el = document.querySelector(".js_contenedorImprimir");
-        let c = el.getBoundingClientRect();
-        console.log("inicio");
-       let base64=await html2canvas(el, {
-            scrollX: -window.scrollX,
-            scrollY: -window.scrollY,
-            windowWidth: document.documentElement.offsetWidth,
-            windowHeight: (el.scrollHeight + 100),
-        }).then(function (c) {
-
-            let image = c.toDataURL();
-            let ar = image.split(",");
-            let cadena = atob(ar[1]);
-            let n = cadena.length;
-            let arUint = new Uint8Array(n);
-            for (let i = 0; i < n; i++) {
-                arUint[i] = cadena.charCodeAt(i);
-            }
-
-            let blob = new Blob([arUint], { type: "image/png" });
-
-            let aDownload = document.createElement("a");
-            aDownload.href = URL.createObjectURL(blob);
-            aDownload.download = "Error.png";
-            aDownload.click();
-            console.log("preparando");
-            return ar[1];
-
-        });
-        console.log("fin");
-
+    try {
+        const savedChart = localStorage.getItem(storageKey);
+        if (savedChart) chartRoot.innerHTML = savedChart;
+    } catch (error) {
+        saveStatus.textContent = "No se pudo recuperar el odontograma guardado";
+        console.error("No se pudo cargar el odontograma", error);
     }
 
+    let saveTimer;
+    const saveChart = () => {
+        clearTimeout(saveTimer);
+        try {
+            localStorage.setItem(storageKey, chartRoot.innerHTML);
+            saveStatus.textContent = "Odontograma guardado en este navegador";
+        } catch (error) {
+            saveStatus.textContent = "No se pudo guardar el odontograma";
+            console.error("No se pudo guardar el odontograma", error);
+        }
+    };
+
+    const persistChart = () => {
+        saveStatus.textContent = "Guardando cambios…";
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveChart, 250);
+    };
+
+    const chartObserver = new MutationObserver(persistChart);
+    chartObserver.observe(chartRoot, {
+        attributes: true,
+        childList: true,
+        characterData: true,
+        subtree: true,
+    });
+    window.addEventListener("beforeunload", saveChart);
+
+    let js_boton = document.querySelector(".js_boton");
+    js_boton.onclick = saveChart;
 
     let moveimage = document.querySelector(".moveimage");
     let js_content = document.querySelector(".js_content")
@@ -184,7 +191,7 @@ window.onload = function () {
             let y = e.layerY;
 
             let html = `<span class="moveimage" data-eliminar="1" style="top: ${y}px; left: ${x}px;">
-                        <img src="../Imagen/${objSeleccionado.url}" style="pointer-events:none;width:48px;height:23px" />
+                        <img src="./Imagen/${objSeleccionado.url}" style="pointer-events:none;width:48px;height:23px" />
                         <span class="imageresize"></span>
                     </span>`;
 
@@ -302,6 +309,8 @@ window.onload = function () {
           
         };
     }
+
+    configurarElementos();
 
 }
 

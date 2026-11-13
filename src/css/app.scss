@@ -1,7 +1,10 @@
 @import 'tailwindcss';
 
 :root {
-  --bg-main: #1d1d1d;
+  --bg-main: #10131f;
+  --bg-grid: rgba(88, 130, 255, 0.075);
+  --neon-cyan: #00d9ff;
+  --neon-blue: #526dff;
   --bg-card: #1c1a18;
   --bg-darker: #151413;
   --bg-sidebar: #1c1a18;
@@ -36,18 +39,38 @@
   --accent-hover: #9a7d35;
 }
 
-.bg-main { background-color: var(--bg-main); }
-.bg-card { background-color: var(--bg-card); }
-.bg-darker { background-color: var(--bg-darker); }
-.bg-sidebar { background-color: var(--bg-sidebar); }
-.bg-input { background-color: var(--bg-input); }
+.bg-main {
+  background-color: var(--bg-main);
+}
+.bg-card {
+  background-color: var(--bg-card);
+}
+.bg-darker {
+  background-color: var(--bg-darker);
+}
+.bg-sidebar {
+  background-color: var(--bg-sidebar);
+}
+.bg-input {
+  background-color: var(--bg-input);
+}
 
-.tx-body { color: var(--tx-body); }
-.tx-subtle { color: var(--tx-subtle); }
-.tx-muted { color: var(--tx-muted); }
+.tx-body {
+  color: var(--tx-body);
+}
+.tx-subtle {
+  color: var(--tx-subtle);
+}
+.tx-muted {
+  color: var(--tx-muted);
+}
 
-.border-theme { border-color: var(--border-color); }
-.border-theme-accent { border-color: var(--border-accent); }
+.border-theme {
+  border-color: var(--border-color);
+}
+.border-theme-accent {
+  border-color: var(--border-accent);
+}
 
 body {
   background-color: var(--bg-main);
@@ -59,11 +82,85 @@ body.light {
   color: var(--tx-body);
 }
 
-.q-table__container, .q-table, .q-card {
+.q-table__container,
+.q-table,
+.q-card {
   background-color: var(--bg-card) !important;
   color: var(--tx-body) !important;
 }
 
 .q-drawer {
   background-color: var(--bg-sidebar) !important;
+}
+
+.futuristic-bg {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(49, 74, 160, 0.19), transparent 45%),
+    radial-gradient(ellipse at 85% 85%, rgba(0, 190, 255, 0.09), transparent 40%), var(--bg-main);
+}
+
+/* Cuadrícula tecnológica */
+.futuristic-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+
+  background-size: 44px 44px;
+
+  mask-image: radial-gradient(ellipse at center, black 10%, transparent 85%);
+
+  animation: grid-drift 30s linear infinite;
+}
+
+/* Luz ambiental animada */
+.futuristic-bg::after {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  z-index: -1;
+  pointer-events: none;
+
+  background: radial-gradient(circle at 50% 50%, rgba(42, 75, 180, 0.12), transparent 38%);
+
+  animation: ambient-glow 12s ease-in-out infinite alternate;
+}
+
+@keyframes grid-drift {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 44px 44px;
+  }
+}
+
+@keyframes ambient-glow {
+  from {
+    transform: translate(-2%, -1%) scale(0.95);
+    opacity: 0.5;
+  }
+
+  to {
+    transform: translate(2%, 1%) scale(1.08);
+    opacity: 1;
+  }
+}
+
+/* Respeta las preferencias de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  .futuristic-bg::before,
+  .futuristic-bg::after {
+    animation: none;
+  }
 }

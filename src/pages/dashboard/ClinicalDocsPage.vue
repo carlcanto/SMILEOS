@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md tx-body">
+  <q-page class="futuristic-bg">
     <div class="max-w-7xl mx-auto">
       <div class="flex justify-between items-center mb-6">
         <div>
@@ -11,7 +11,8 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div v-for="tpl in plantillas" :key="tpl.id" @click="seleccionarPlantilla(tpl)"
           class="bg-card border border-theme rounded-xl p-6 cursor-pointer hover:border-[#e3bc50]/30 hover:bg-card/80 transition-all group">
-          <q-icon :name="tpl.icono" size="32px" class="text-[#e3bc50] mb-3 group-hover:scale-110 transition-transform" />
+          <q-icon :name="tpl.icono" size="32px"
+            class="text-[#e3bc50] mb-3 group-hover:scale-110 transition-transform" />
           <div class="tx-body text-sm font-bold">{{ tpl.nombre }}</div>
           <div class="tx-muted text-[11px] mt-1">{{ tpl.descripcion }}</div>
         </div>
@@ -22,16 +23,20 @@
           <div class="flex justify-between items-center mb-4">
             <div class="text-[#e3bc50] font-bold text-sm tracking-wide">{{ plantillaActiva.nombre }}</div>
             <div class="flex gap-2">
-              <q-btn flat dense color="white" icon="close" label="Cerrar" @click="plantillaActiva = null" size="sm" class="tx-subtle" no-caps />
+              <q-btn flat dense color="white" icon="close" label="Cerrar" @click="plantillaActiva = null" size="sm"
+                class="tx-subtle" no-caps />
             </div>
           </div>
 
           <div class="bg-main rounded-lg p-6 border border-theme">
             <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-              <div><span class="tx-muted">Paciente:</span> <span class="tx-body font-medium ml-2" contenteditable>{{ pacienteEjemplo.nombre }}</span></div>
-              <div><span class="tx-muted">Identificación:</span> <span class="tx-body ml-2">{{ pacienteEjemplo.identificacion }}</span></div>
+              <div><span class="tx-muted">Paciente:</span> <span class="tx-body font-medium ml-2" contenteditable>{{
+                pacienteEjemplo.nombre }}</span></div>
+              <div><span class="tx-muted">Identificación:</span> <span class="tx-body ml-2">{{
+                pacienteEjemplo.identificacion }}</span></div>
               <div><span class="tx-muted">Fecha:</span> <span class="tx-body ml-2">{{ fechaActual }}</span></div>
-              <div><span class="tx-muted">Doctor:</span> <span class="tx-body font-medium ml-2" contenteditable>Dr. García</span></div>
+              <div><span class="tx-muted">Doctor:</span> <span class="tx-body font-medium ml-2" contenteditable>Dr.
+                  García</span></div>
             </div>
 
             <q-separator class="bg-gray-800 q-mb-md" />

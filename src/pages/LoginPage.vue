@@ -67,21 +67,9 @@
 
           <button type="button" @click="showPassword = !showPassword"
             class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-500 hover:text-cyan-400 transition-colors focus:outline-none select-none">
-            <span class="text-sm">
-              {{ showPassword ? '👁️' : '🙈' }}
-            </span>
+            <q-icon :name="showPassword ? 'visibility' : 'visibility_off'" size="20px" />
           </button>
         </div>
-
-
-        <div class="flex items-center justify-between px-1 pt-1">
-          <label class="flex items-center text-xs text-slate-400 cursor-pointer select-none">
-            <input type="checkbox"
-              class="w-4 h-4 rounded border-slate-800 bg-slate-900/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 mr-2 accent-cyan-500" />
-            Mantener sesión iniciada
-          </label>
-        </div>
-
 
         <button type="submit"
           class="relative w-full mt-2 py-3 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 text-slate-950 font-bold tracking-wider text-xs uppercase rounded-xl shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/20 active:scale-[0.99] transition-all duration-200 overflow-hidden group">
