@@ -1,0 +1,84 @@
+# Perfil local (clínica): cuatro procesos, tres imágenes.
+#   Uso:  cp env/.env.local.example .env   (en esta carpeta, y editar la contraseña)
+#         docker compose -f docker-compose.local.yml up -d --build
+#         docker compose -f docker-compose.local.yml run --rm api alembic upgrade head
+name: smileos
+
+x-backend-env: &backend-env
+  APP_PROFILE: local
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-smileos}:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD en deploy/.env}@db:5432/${POSTGRES_DB:-smileos}
+  STORAGE_BACKEND: local
+  STORAGE_LOCAL_PATH: /srv/uploads
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-30}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smileos}
+      POSTGRES_USER: ${POSTGRES_USER:-smileos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD en deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ../backend
+    image: smileos-backend:local
+    restart: unless-stopped
+    environment: *backend-env
+    volumes:
+      - uploads:/srv/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  worker:
+    # Misma imagen que api; solo cambia el comando.
+    image: smileos-backend:local
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    environment: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+    image: smileos-frontend:local
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+  uploads:

@@ -1,0 +1,9 @@
+.git
+.github
+backend
+docs
+deploy/env
+**/node_modules
+**/dist
+**/.quasar
+**/.venv

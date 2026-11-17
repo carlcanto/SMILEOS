@@ -1,0 +1,16 @@
+# Secretos y configuración local: nunca al repositorio
+.env
+deploy/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+
+# Sistema operativo y editores
+.DS_Store
+.thumbs.db
