@@ -15,19 +15,12 @@ const routes = [
             path: 'pacientes/:id',
             component: () => import('pages/dashboard/PatientDetailPage.vue'),
           },
-          { path: 'documentos', component: () => import('pages/dashboard/DocumentsPage.vue') },
+          { path: 'inventario', component: () => import('pages/dashboard/InventoryPage.vue') },
           { path: 'evoluciones', component: () => import('pages/dashboard/EvolutionsPage.vue') },
+          { path: 'historial-clinico', component: () => import('pages/dashboard/ClinicalHistoryPage.vue') },
           {
             path: 'plan-tratamiento',
             component: () => import('pages/dashboard/TreatmentPlanPage.vue'),
-          },
-          {
-            path: 'documentos-clinicos',
-            component: () => import('pages/dashboard/ClinicalDocsPage.vue'),
-          },
-          {
-            path: 'periodontograma',
-            component: () => import('pages/dashboard/PeriodontogramPage.vue'),
           },
           { path: 'reportes', component: () => import('pages/dashboard/ReportsPage.vue') },
         ],

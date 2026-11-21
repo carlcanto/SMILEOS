@@ -81,7 +81,7 @@ export default defineConfig((/* ctx */) => {
         dark: true
       },
 
-      plugins: ['Dark', 'Notify']
+      plugins: ['Dark', 'Notify', 'Dialog']
     },
 
     // animations: 'all', // --- includes all animations

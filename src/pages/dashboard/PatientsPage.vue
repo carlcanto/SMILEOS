@@ -338,6 +338,21 @@
               </div>
             </div>
           </div>
+          <div class="profile-group clinical-history-group">
+            <h3>Historial de evoluciones</h3>
+            <div v-if="patientEvolutionHistory.length" class="clinical-history-list">
+              <article v-for="evolution in patientEvolutionHistory" :key="evolution.id" class="clinical-history-item">
+                <div class="clinical-history-date">{{ formatDate(evolution.date) }}</div>
+                <div class="clinical-history-copy">
+                  <strong>{{ evolution.reason }} · {{ evolution.dentistName }}</strong>
+                  <span>{{ evolution.procedure }}</span>
+                  <small>Hallazgos: {{ evolution.findings }}</small>
+                </div>
+                <q-icon name="verified" class="history-validated" />
+              </article>
+            </div>
+            <div v-else class="clinical-history-empty">Aún no hay evoluciones clínicas registradas.</div>
+          </div>
         </q-card-section>
         <q-card-actions class="patient-dialog-actions" align="between"><span class="record-id">REGISTRO · {{
           selectedPatient.cedula }}</span><q-btn unelevated no-caps label="Listo" icon-right="arrow_forward"
@@ -392,6 +407,7 @@ const patients = ref([
 ])
 const searchQuery = ref('')
 const selectedPatient = ref(null)
+const patientEvolutionHistory = ref([])
 const detailsDialog = ref(false)
 const registrationDialog = ref(false)
 const odontogramDialog = ref(false)
@@ -456,7 +472,22 @@ const filteredPatients = computed(() => {
   if (!query) return []
   return patients.value.filter((patient) => normalize(`${patient.patientCode} ${patient.cedula} ${patient.firstName} ${patient.lastName} ${fullName(patient)} ${patient.phone} ${patient.phoneSecondary}`).includes(query))
 })
-function showPatientDetails(patient) { selectedPatient.value = patient; detailsDialog.value = true }
+function showPatientDetails(patient) {
+  selectedPatient.value = patient
+  try {
+    const savedEvolutions = JSON.parse(localStorage.getItem('smileos-evolutions') || '[]')
+    patientEvolutionHistory.value = Array.isArray(savedEvolutions)
+      ? savedEvolutions
+        .filter((evolution) => String(evolution.patientId) === String(patient.cedula)
+          || String(evolution.patientCedula) === String(patient.cedula))
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+      : []
+  } catch (error) {
+    patientEvolutionHistory.value = []
+    console.error('No se pudo cargar el historial clínico del paciente', error)
+  }
+  detailsDialog.value = true
+}
 function openOdontogram() {
   if (!selectedPatient.value) return
   odontogramPatientName.value = fullName(selectedPatient.value)
@@ -1087,6 +1118,15 @@ function savePatient() {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
+
+.clinical-history-list { display: flex; flex-direction: column; gap: 8px; }
+.clinical-history-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid rgba(34, 211, 238, .14); border-radius: 10px; background: rgba(15, 38, 58, .48); }
+.clinical-history-date { flex: 0 0 92px; color: #67e8f9; font-size: 10px; }
+.clinical-history-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 4px; }
+.clinical-history-copy strong { color: #e2e8f0; font-size: 11px; font-weight: 550; }
+.clinical-history-copy span,.clinical-history-copy small { color: #94a3b8; font-size: 10px; line-height: 1.45; }
+.history-validated { color: #4ade80; font-size: 17px; }
+.clinical-history-empty { padding: 14px; border: 1px dashed rgba(100, 140, 190, .2); border-radius: 9px; color: #718096; font-size: 11px; }
 
 .patient-dialog-actions {
   display: flex;

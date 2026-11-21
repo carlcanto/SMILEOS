@@ -24,6 +24,11 @@ const STATUS = {
     color: '#f87171',
     background: 'rgba(248, 113, 113, 0.15)',
   },
+  atendida: {
+    label: 'Atendida',
+    color: '#60a5fa',
+    background: 'rgba(96, 165, 250, 0.15)',
+  },
 }
 
 // Crea fechas locales sin problemas de zona horaria.
@@ -164,6 +169,22 @@ const reasons = [
   'Consulta general', 'Limpieza dental', 'Dolor dental', 'Extracción', 'Ortodoncia',
   'Endodoncia', 'Restauración', 'Revisión odontológica', 'Otro',
 ]
+// Tarifas provisionales de referencia; reemplazar por el tarifario aprobado de la clínica.
+const reasonEstimates = {
+  'Consulta general': 25,
+  'Limpieza dental': 35,
+  'Dolor dental': 25,
+  Extracción: 50,
+  Ortodoncia: 35,
+  Endodoncia: 150,
+  Restauración: 45,
+  'Revisión odontológica': 20,
+  Otro: 0,
+}
+const reasonOptions = reasons.map((reason) => ({
+  label: `${reason} · ${new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD' }).format(reasonEstimates[reason])}`,
+  value: reason,
+}))
 const appointmentStatuses = [
   { label: 'Confirmada', value: 'confirmada' },
   { label: 'Reprogramada', value: 'reprogramada' },
@@ -195,6 +216,7 @@ function emptyAppointmentForm() {
     dentistId: '',
     reason: '',
     otherReason: '',
+    estimatedPrice: 0,
     treatmentType: '',
     description: '',
     observations: '',
@@ -238,7 +260,7 @@ function normalizePatient(patient) {
 }
 
 function normalizeAppointment(appointment) {
-  const statusMap = { confirmed: 'confirmada', pending: 'confirmada', cancelled: 'cancelada', rescheduled: 'reprogramada' }
+  const statusMap = { confirmed: 'confirmada', pending: 'confirmada', cancelled: 'cancelada', rescheduled: 'reprogramada', completed: 'atendida' }
   const dentist = dentists.find((item) => item.id === appointment.dentistId)
   return {
     ...appointment,
@@ -250,6 +272,7 @@ function normalizeAppointment(appointment) {
     dentistName: appointment.dentistName || dentist?.name || 'Odontólogo por asignar',
     status: statusMap[appointment.status] || appointment.status || 'confirmada',
     reason: appointment.reason || 'Consulta general',
+    estimatedPrice: Number(appointment.estimatedPrice ?? reasonEstimates[appointment.reason] ?? 0),
     treatmentType: appointment.treatmentType || '',
     description: appointment.description || '',
     observations: appointment.observations || '',
@@ -273,6 +296,13 @@ onMounted(() => {
   try {
     const savedAppointments = JSON.parse(localStorage.getItem(APPOINTMENT_STORAGE_KEY) || 'null')
     if (Array.isArray(savedAppointments)) appointments.value = savedAppointments.map(normalizeAppointment)
+    else {
+      localStorage.setItem(APPOINTMENT_STORAGE_KEY, JSON.stringify(appointments.value.map((appointment) => ({
+        ...appointment,
+        start: appointment.start.toISOString(),
+        end: appointment.end.toISOString(),
+      }))))
+    }
   } catch (error) {
     $q.notify({ type: 'negative', message: 'No se pudieron cargar las citas guardadas.' })
     console.error('No se pudieron cargar las citas guardadas', error)
@@ -286,6 +316,10 @@ function formatDate(date) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date)
+}
+
+function formatMoney(value) {
+  return new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD' }).format(Number(value) || 0)
 }
 
 // Convierte las citas al formato que entiende FullCalendar.
@@ -308,6 +342,7 @@ const calendarEvents = computed(() =>
         patientCode: appointment.patientCode,
         status: appointment.status,
         reason: appointment.reason,
+        estimatedPrice: appointment.estimatedPrice ?? reasonEstimates[appointment.reason] ?? 0,
         treatmentType: appointment.treatmentType,
         description: appointment.description,
         observations: appointment.observations,
@@ -401,6 +436,7 @@ function onEventClick(info) {
     cedula: event.extendedProps.cedula,
     status: event.extendedProps.status,
     reason: event.extendedProps.reason,
+    estimatedPrice: event.extendedProps.estimatedPrice,
     patientId: event.extendedProps.patientId,
     patientCode: event.extendedProps.patientCode,
     treatmentType: event.extendedProps.treatmentType,
@@ -468,6 +504,10 @@ function clearSelectedPatient() {
   patientSearchOpen.value = true
 }
 
+function updateReasonEstimate(reason) {
+  appointmentForm.value.estimatedPrice = reasonEstimates[reason] ?? 0
+}
+
 function clockValue(date) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
@@ -531,6 +571,7 @@ function appointmentToForm(appointment) {
     reason: reasonIsKnown ? appointment.reason : 'Otro',
     otherReason: reasonIsKnown ? '' : appointment.reason,
     treatmentType: appointment.treatmentType || '',
+    estimatedPrice: Number(appointment.estimatedPrice ?? reasonEstimates[appointment.reason] ?? 0),
     description: appointment.description || '',
     observations: appointment.observations || '',
     status: appointment.status || 'confirmada',
@@ -607,7 +648,7 @@ function validateAppointmentForm({ ignoreAppointmentId } = {}) {
   }
   const dentistName = dentists.find((dentist) => dentist.id === current.dentistId)?.name || ''
   const reason = current.reason === 'Otro' ? current.otherReason.trim() : current.reason
-  const isBlocking = (appointment) => !['cancelada', 'reprogramada'].includes(appointment.status)
+  const isBlocking = (appointment) => !['cancelada', 'reprogramada', 'atendida'].includes(appointment.status)
   const overlap = appointments.value.find((appointment) => {
     if (appointment.id === ignoreAppointmentId || !isBlocking(appointment)) return false
     const sameDentist = appointment.dentistId === current.dentistId
@@ -651,6 +692,7 @@ function appointmentFromForm({ id, status, rescheduledFromId = null, extra = {} 
     dentistName: dentist?.name || validated.dentistName,
     reason: validated.reason,
     treatmentType: current.treatmentType.trim(),
+    estimatedPrice: Math.max(0, Number(current.estimatedPrice) || 0),
     description: current.description.trim(),
     observations: current.observations.trim(),
     status,
@@ -904,6 +946,10 @@ const calendarOptions = {
             <i class="legend-dot bg-red-400"></i>
             Cancelada
           </span>
+          <span class="legend-item">
+            <i class="legend-dot" style="background:#60a5fa"></i>
+            Atendida
+          </span>
         </div>
 
         <!-- Selector de vista a la derecha -->
@@ -956,6 +1002,10 @@ const calendarOptions = {
               <div><span>Código del paciente</span><strong>{{ selectedAppointment.patientCode ||
                 selectedAppointment.cedula }}</strong></div>
             </div>
+            <div class="appointment-info-card">
+              <q-icon name="payments" />
+              <div><span>Estimación de consulta</span><strong>{{ formatMoney(selectedAppointment.estimatedPrice) }}</strong></div>
+            </div>
             <div v-if="selectedAppointment.treatmentType" class="appointment-info-card appointment-reason-card">
               <q-icon name="healing" />
               <div><span>Tratamiento</span><strong>{{ selectedAppointment.treatmentType }}</strong></div>
@@ -1003,11 +1053,11 @@ const calendarOptions = {
           <div class="dialog-actions">
             <q-btn v-if="selectedAppointment.status === 'confirmada'" flat no-caps label="Reprogramar"
               icon="event_repeat" class="subtle-action" @click="openRescheduleAppointment" />
-            <q-btn v-if="selectedAppointment.status !== 'cancelada'" flat no-caps label="Cancelar cita"
+            <q-btn v-if="['confirmada', 'reprogramada'].includes(selectedAppointment.status)" flat no-caps label="Cancelar cita"
               icon="event_busy" class="danger-action" @click="openCancelDialog()" />
-            <q-btn v-if="selectedAppointment.status !== 'cancelada'" unelevated no-caps label="Editar" icon="edit"
+            <q-btn v-if="['confirmada', 'reprogramada'].includes(selectedAppointment.status)" unelevated no-caps label="Editar" icon="edit"
               class="appointment-close-action" @click="openEditAppointment" />
-            <q-btn v-else unelevated no-caps label="Cerrar" icon-right="arrow_forward" class="appointment-close-action"
+            <q-btn v-if="!['confirmada', 'reprogramada'].includes(selectedAppointment.status)" unelevated no-caps label="Cerrar" icon-right="arrow_forward" class="appointment-close-action"
               v-close-popup />
           </div>
         </footer>
@@ -1082,8 +1132,11 @@ const calendarOptions = {
                 stack-label class="appointment-input" />
               <q-input v-model="appointmentForm.endTime" dark outlined dense type="time" label="Hora de finalización"
                 stack-label class="appointment-input" />
-              <q-select v-model="appointmentForm.reason" dark outlined dense :options="reasons"
-                label="Motivo de consulta" class="appointment-input" />
+              <q-select v-model="appointmentForm.reason" dark outlined dense emit-value map-options :options="reasonOptions"
+                label="Motivo de consulta" class="appointment-input" @update:model-value="updateReasonEstimate" />
+              <q-input v-model.number="appointmentForm.estimatedPrice" dark outlined dense type="number" min="0"
+                step="0.01" prefix="$" label="Costo estimado (USD)" hint="Tarifa provisional editable"
+                class="appointment-input" />
               <q-input v-if="appointmentForm.reason === 'Otro'" v-model="appointmentForm.otherReason" dark outlined
                 dense label="Especifica el motivo" class="appointment-input" />
               <q-input v-model="appointmentForm.treatmentType" dark outlined dense label="Tipo de tratamiento"
@@ -1251,6 +1304,16 @@ const calendarOptions = {
   animation: dialog-enter 180ms ease-out;
 }
 
+.appointment-form-dialog {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.appointment-form-dialog>.form-dialog-header {
+  flex: 0 0 auto;
+}
+
 .form-dialog-header,
 .cancel-dialog-header {
   display: flex;
@@ -1295,7 +1358,10 @@ const calendarOptions = {
 }
 
 .form-dialog-content {
-  max-height: calc(90vh - 90px);
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
   overflow-y: auto;
 }
 
@@ -1488,12 +1554,21 @@ const calendarOptions = {
 }
 
 .form-dialog-footer {
+  position: sticky;
+  z-index: 4;
+  bottom: 0;
   display: flex;
+  flex: 0 0 auto;
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 24px;
   border-top: 1px solid rgba(100, 140, 190, .14);
   background: rgba(2, 6, 23, .3);
+}
+
+.appointment-form-dialog .form-dialog-footer {
+  background: #0b1120;
+  box-shadow: 0 -8px 20px rgba(2, 6, 23, .42);
 }
 
 .dialog-actions {

@@ -111,14 +111,13 @@ const miniState = ref(false)
 const adminItems = [
   { label: 'Citas', icon: 'calendar_today', to: '/dashboard/citas' },
   { label: 'Pacientes', icon: 'people', to: '/dashboard/pacientes' },
-  { label: 'Documentos', icon: 'description', to: '/dashboard/documentos' },
+  { label: 'Inventario', icon: 'inventory_2', to: '/dashboard/inventario' },
 ]
 
 const clinicoItems = [
+  { label: 'Historial Clínico', icon: 'medical_information', to: '/dashboard/historial-clinico' },
   { label: 'Evoluciones', icon: 'timeline', to: '/dashboard/evoluciones' },
   { label: 'Plan de Tratamiento', icon: 'assignment', to: '/dashboard/plan-tratamiento' },
-  { label: 'Documentos Clínicos', icon: 'note_alt', to: '/dashboard/documentos-clinicos' },
-  { label: 'Periodontograma', icon: 'grid_view', to: '/dashboard/periodontograma' },
 ]
 
 const logout = () => {
