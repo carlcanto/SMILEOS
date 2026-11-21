@@ -3,8 +3,11 @@ from pydantic import ValidationError
 
 from app.shared.config import Settings
 
+SECRET = "x" * 40
+
 
 def build(**env: str) -> Settings:
+    env.setdefault("jwt_secret", SECRET)
     return Settings(_env_file=None, **env)  # type: ignore[arg-type]
 
 
@@ -37,6 +40,7 @@ def test_url_asyncpg_no_se_modifica() -> None:
 
 def test_cors_se_lee_separado_por_comas(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@db/x")
+    monkeypatch.setenv("JWT_SECRET", SECRET)
     monkeypatch.setenv("CORS_ORIGINS", "https://a.vercel.app, https://b.example.com ,")
     settings = Settings(_env_file=None)
     assert settings.cors_origins == ["https://a.vercel.app", "https://b.example.com"]
@@ -44,3 +48,21 @@ def test_cors_se_lee_separado_por_comas(monkeypatch: pytest.MonkeyPatch) -> None
 
 def test_cors_vacio_por_defecto() -> None:
     assert build(database_url="postgresql+asyncpg://u:p@db/x").cors_origins == []
+
+
+def test_arranque_falla_si_falta_el_secreto_jwt(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("JWT_SECRET", raising=False)
+    with pytest.raises(ValidationError) as error:
+        Settings(_env_file=None, database_url="postgresql+asyncpg://u:p@db/x")
+    assert "jwt_secret" in str(error.value)
+
+
+def test_secreto_jwt_corto_se_rechaza() -> None:
+    with pytest.raises(ValidationError):
+        build(database_url="postgresql+asyncpg://u:p@db/x", jwt_secret="corto")
+
+
+def test_vida_de_los_tokens_por_defecto() -> None:
+    settings = build(database_url="postgresql+asyncpg://u:p@db/x")
+    assert settings.access_token_minutes == 15
+    assert settings.refresh_token_days == 7

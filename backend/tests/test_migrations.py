@@ -1,22 +1,17 @@
 import asyncio
-from pathlib import Path
 
 import pytest
-from alembic import command
-from alembic.config import Config
+from alembic.autogenerate import compare_metadata
+from alembic.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from sqlalchemy import text
 
-from app.shared.config import get_settings
-from app.shared.db import create_engine
-from tests.conftest import TEST_DATABASE_URL, requires_database
+from app.modules.audit.infrastructure import orm as _audit_orm  # noqa: F401
+from app.modules.identity.infrastructure import orm as _identity_orm  # noqa: F401
+from app.shared.db import Base, create_engine
+from tests.conftest import TEST_DATABASE_URL, alembic_config, migrate, requires_database
 
-BACKEND = Path(__file__).resolve().parents[1]
-
-
-def alembic_config() -> Config:
-    config = Config(str(BACKEND / "alembic.ini"))
-    config.set_main_option("script_location", str(BACKEND / "migrations"))
-    return config
+HEAD = ScriptDirectory.from_config(alembic_config()).get_current_head()
 
 
 def current_versions(url: str) -> list[str]:
@@ -35,12 +30,31 @@ def current_versions(url: str) -> list[str]:
 @requires_database
 def test_las_migraciones_suben_y_bajan(monkeypatch: pytest.MonkeyPatch) -> None:
     assert TEST_DATABASE_URL is not None
-    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
-    get_settings.cache_clear()
     try:
-        command.upgrade(alembic_config(), "head")
-        assert current_versions(TEST_DATABASE_URL) == ["0001"]
-        command.downgrade(alembic_config(), "base")
+        migrate("up", "head", monkeypatch)
+        assert current_versions(TEST_DATABASE_URL) == [HEAD]
+        migrate("down", "base", monkeypatch)
         assert current_versions(TEST_DATABASE_URL) == []
     finally:
-        get_settings.cache_clear()
+        # Las demás pruebas esperan la base en la última migración.
+        migrate("up", "head", monkeypatch)
+
+
+@requires_database
+def test_los_modelos_coinciden_con_las_migraciones(migrated_database: None) -> None:
+    """Si alguien cambia un modelo y olvida la migración, esta prueba falla."""
+    assert TEST_DATABASE_URL is not None
+
+    async def diff() -> list[object]:
+        engine = create_engine(TEST_DATABASE_URL)
+        try:
+            async with engine.connect() as connection:
+                return await connection.run_sync(
+                    lambda sync: list(
+                        compare_metadata(MigrationContext.configure(sync), Base.metadata)
+                    )
+                )
+        finally:
+            await engine.dispose()
+
+    assert asyncio.run(diff()) == []

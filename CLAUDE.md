@@ -52,6 +52,7 @@ TEST_DATABASE_URL=postgresql+asyncpg://smileos:smileos@127.0.0.1:5432/smileos_te
 # Perfil local completo (desde deploy/, con deploy/.env creado a partir de env/.env.local.example)
 docker compose -f docker-compose.local.yml up -d --build
 docker compose -f docker-compose.local.yml run --rm api alembic upgrade head
+docker compose -f docker-compose.local.yml run --rm api python -m app.cli create-admin --email ... --name ...
 ```
 
 ## Convenciones del backend
@@ -74,10 +75,16 @@ docker compose -f docker-compose.local.yml run --rm api alembic upgrade head
 - **Privacidad**: nada de datos clínicos ni personales en logs, mensajes de error ni
   parámetros de consulta registrados. Las pruebas y la nube usan datos ficticios.
 - Las migraciones se aplican con comando explícito, no al arrancar la API.
+- Autenticación: los roles y el estado activo se leen de la base en cada petición; los
+  endpoints se protegen con `require_roles(...)` (`modules/identity/api/dependencies.py`).
+  Toda acción de escritura relevante registra un evento en `audit_log` dentro de la misma
+  transacción, sin contraseñas, tokens ni datos clínicos.
 
 ## Estado
 
-S0 (fundaciones) completo en local. Siguiente: S1 (identidad: JWT propio con Argon2,
-roles `admin`, `odontologo` y `recepcion`, auditoría). Pendientes abiertos: despliegue en
-la nube, confirmar con el autor del frontend el JWT propio y el enum de estados de cita, y
-la lista de **[POR CONFIRMAR]** del documento de la tesis.
+S0 (fundaciones) y S1 (identidad: login con JWT y refresco rotativo, Argon2id, roles
+`admin`, `odontologo` y `recepcion`, gestión de usuarios, auditoría de solo inserción) están
+completos en el backend. Siguiente: S2 (pacientes), el primer módulo clínico, que sirve de
+plantilla para los demás. Pendientes abiertos: que el frontend use la API de sesión,
+confirmar con su autor el JWT propio y el enum de estados de cita, restablecimiento de
+contraseña, despliegue en la nube y la lista de **[POR CONFIRMAR]** del documento de la tesis.

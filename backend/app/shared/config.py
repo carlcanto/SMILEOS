@@ -23,6 +23,19 @@ class Settings(BaseSettings):
     storage_local_path: str = "/srv/uploads"
     log_level: str = "INFO"
     worker_poll_seconds: float = 30.0
+    # Firma de los tokens de acceso. Obligatorio y distinto en cada instalación.
+    jwt_secret: str
+    access_token_minutes: int = 15
+    refresh_token_days: int = 7
+    # Funciones que el frontend consulta en GET /api/v1/config/public.
+    feature_patient_portal: bool = False
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def jwt_secret_is_long_enough(cls, value: str) -> str:
+        if len(value) < 32:
+            raise ValueError("JWT_SECRET debe tener al menos 32 caracteres")
+        return value
 
     @field_validator("database_url")
     @classmethod

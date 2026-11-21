@@ -8,6 +8,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+# Importar los modelos de cada módulo los registra en Base.metadata.
+from app.modules.audit.infrastructure import orm as _audit_orm  # noqa: F401, I001
+from app.modules.identity.infrastructure import orm as _identity_orm  # noqa: F401, I001
 from app.shared.config import get_settings
 from app.shared.db import Base
 

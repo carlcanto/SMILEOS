@@ -9,7 +9,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.shared import health
+from app.modules.identity.api.router import router as identity_router
+from app.modules.identity.composition import build_runtime
+from app.shared import health, public_config
 from app.shared.config import Settings, get_settings
 from app.shared.db import create_engine, create_session_factory
 from app.shared.errors import register_error_handlers
@@ -28,6 +30,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.settings = settings
         app.state.engine = engine
         app.state.session_factory = create_session_factory(engine)
+        app.state.identity = build_runtime(settings)
         logger.info("api_started", extra={"profile": settings.app_profile})
         yield
         await engine.dispose()
@@ -70,4 +73,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     register_error_handlers(app)
     app.include_router(health.router)
+    app.include_router(public_config.router)
+    app.include_router(identity_router)
     return app
