@@ -74,7 +74,13 @@ docker compose -f docker-compose.local.yml run --rm api python -m app.cli create
   indican dónde falló, nunca el valor recibido.
 - **Privacidad**: nada de datos clínicos ni personales en logs, mensajes de error ni
   parámetros de consulta registrados. Las pruebas y la nube usan datos ficticios.
-- Las migraciones se aplican con comando explícito, no al arrancar la API.
+- Las migraciones se aplican con comando explícito por defecto (`alembic upgrade head` o
+  `python -m app.cli migrate`); solo en la nube se activa `RUN_MIGRATIONS_ON_START=true`, con
+  un candado de la base. Cada migración que crea una tabla debe activar RLS
+  (`ALTER TABLE ... ENABLE ROW LEVEL SECURITY`, sin políticas): una prueba lo exige.
+- La base de datos puede ser cualquier Postgres vacío (contenedor local o un proyecto de
+  Supabase de cualquier cuenta); `DATABASE_URL` se acepta como la entrega Supabase. En la
+  nube se usa solo el *Session pooler* (puerto 5432).
 - Autenticación: los roles y el estado activo se leen de la base en cada petición; los
   endpoints se protegen con `require_roles(...)` (`modules/identity/api/dependencies.py`).
   Toda acción de escritura relevante registra un evento en `audit_log` dentro de la misma
@@ -82,9 +88,9 @@ docker compose -f docker-compose.local.yml run --rm api python -m app.cli create
 
 ## Estado
 
-S0 (fundaciones) y S1 (identidad: login con JWT y refresco rotativo, Argon2id, roles
+S0 (fundaciones), la preparación del despliegue en la nube (`docs/despliegue-nube.md`) y S1 (identidad: login con JWT y refresco rotativo, Argon2id, roles
 `admin`, `odontologo` y `recepcion`, gestión de usuarios, auditoría de solo inserción) están
 completos en el backend. Siguiente: S2 (pacientes), el primer módulo clínico, que sirve de
 plantilla para los demás. Pendientes abiertos: que el frontend use la API de sesión,
 confirmar con su autor el JWT propio y el enum de estados de cita, restablecimiento de
-contraseña, despliegue en la nube y la lista de **[POR CONFIRMAR]** del documento de la tesis.
+contraseña, ejecutar el despliegue en la nube con las cuentas del autor (Supabase, Render y Vercel) y la lista de **[POR CONFIRMAR]** del documento de la tesis.

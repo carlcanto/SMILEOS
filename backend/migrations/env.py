@@ -4,22 +4,26 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import pool
+from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Importar los modelos de cada módulo los registra en Base.metadata.
+from app.migrations import MIGRATION_LOCK_ID
 from app.modules.audit.infrastructure import orm as _audit_orm  # noqa: F401, I001
 from app.modules.identity.infrastructure import orm as _identity_orm  # noqa: F401, I001
 from app.shared.config import get_settings
 from app.shared.db import Base
 
 config = context.config
-if config.config_file_name is not None:
+# Cuando la API aplica las migraciones al arrancar no se toca la configuración de logs.
+if config.config_file_name is not None and config.attributes.get("configure_logging", True):
     fileConfig(config.config_file_name, disable_existing_loggers=False)
 
+# La URL puede venir de quien invoca (app.migrations) o del entorno (CLI de Alembic).
+database_url: str = config.attributes.get("database_url") or get_settings().database_url
 # configparser interpreta "%" como interpolación: se escapa para contraseñas con "%".
-config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("%", "%%"))
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 
@@ -38,6 +42,7 @@ def run_migrations_offline() -> None:
 def do_run_migrations(connection: Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
+        connection.execute(text("SELECT pg_advisory_xact_lock(:id)"), {"id": MIGRATION_LOCK_ID})
         context.run_migrations()
 
 

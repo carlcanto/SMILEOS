@@ -1,5 +1,6 @@
 """Punto de entrada de la API: ``uvicorn app.main:create_app --factory``."""
 
+import asyncio
 import logging
 import time
 import uuid
@@ -9,6 +10,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.bootstrap import ensure_bootstrap_admin
+from app.migrations import upgrade_to_head
 from app.modules.identity.api.router import router as identity_router
 from app.modules.identity.composition import build_runtime
 from app.shared import health, public_config
@@ -31,6 +34,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.engine = engine
         app.state.session_factory = create_session_factory(engine)
         app.state.identity = build_runtime(settings)
+        if settings.run_migrations_on_start:
+            # Alembic usa su propio ciclo de eventos: se ejecuta en un hilo aparte.
+            await asyncio.to_thread(upgrade_to_head, settings.database_url)
+            logger.info("migrations_applied")
+        if await ensure_bootstrap_admin(settings, app.state.identity, app.state.session_factory):
+            logger.info("bootstrap_admin_created")
         logger.info("api_started", extra={"profile": settings.app_profile})
         yield
         await engine.dispose()

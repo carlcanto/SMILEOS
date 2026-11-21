@@ -31,6 +31,12 @@ El último comando pide la contraseña del primer administrador (mínimo 10 cara
 Abrir `http://localhost` (o el `HTTP_PORT` elegido). Comprobar la salud con
 `http://localhost/api/health/ready`.
 
+## Nube (presentación de la tesis)
+
+Supabase + Render + Vercel, solo con datos ficticios. El backend crea las tablas y el
+administrador inicial en cualquier proyecto de Supabase vacío: basta apuntar `DATABASE_URL` a él.
+Guía paso a paso: [docs/despliegue-nube.md](docs/despliegue-nube.md).
+
 ## Desarrollo del backend (sin Docker)
 
 Requiere Python 3.13, [uv](https://docs.astral.sh/uv/) y un Postgres.
@@ -67,6 +73,8 @@ Usuario de prueba del login provisional: `admin` / `admin`.
 - [ADR-0002 Perfiles local y nube](docs/adr/0002-perfiles-local-y-nube.md)
 - [ADR-0003 Cola en Postgres, sin Redis](docs/adr/0003-postgres-como-cola-sin-redis.md)
 - [ADR-0004 Autenticación propia](docs/adr/0004-autenticacion-propia-jwt-y-refresh-rotativo.md)
+- [ADR-0005 Esquema y administrador inicial en cualquier Supabase](docs/adr/0005-esquema-y-administrador-inicial-en-cualquier-supabase.md)
+- [Despliegue en la nube](docs/despliegue-nube.md)
 - [Bitácora S0](docs/sprints/S0.md) y [S1](docs/sprints/S1.md)
 
 ## Ramas
